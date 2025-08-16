@@ -1517,6 +1517,7 @@ gtkui_mainwin_init (void) {
     // register widget types
     w_reg_widget (_ ("Playlist with tabs"), DDB_WF_SINGLE_INSTANCE, w_tabbed_playlist_create, "tabbed_playlist", NULL);
     w_reg_widget (_ ("Playlist"), DDB_WF_SINGLE_INSTANCE, w_playlist_create, "playlist", NULL);
+    w_reg_widget (_ ("Search"), DDB_WF_SINGLE_INSTANCE, w_search_create, "search", NULL);
     w_reg_widget (NULL, 0, w_box_create, "box", NULL);
     w_reg_widget (NULL, 0, w_dummy_create, "dummy", NULL);
     w_reg_widget (_ ("Splitter (top and bottom)"), 0, w_vsplitter_create, "vsplitter", NULL);

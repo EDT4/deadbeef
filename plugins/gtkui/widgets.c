@@ -131,6 +131,11 @@ typedef struct {
 } w_tabbed_playlist_t;
 
 typedef struct {
+    w_playlist_t plt;
+    GtkEntry *searchentry;
+} w_search_t;
+
+typedef struct {
     ddb_gtkui_widget_t base;
     GtkWidget *drawarea;
 } w_placeholder_t;
@@ -2138,7 +2143,7 @@ w_tabbed_playlist_message (ddb_gtkui_widget_t *w, uint32_t id, uintptr_t ctx, ui
 
 static const char *
 w_playlist_load (struct ddb_gtkui_widget_s *w, const char *type, const char *s) {
-    if (strcmp (type, "playlist") && strcmp (type, "tabbed_playlist")) {
+    if (strcmp (type, "playlist") && strcmp (type, "tabbed_playlist") && strcmp (type, "search")) {
         return NULL;
     }
     char key[MAX_TOKEN], val[MAX_TOKEN];
@@ -2277,6 +2282,97 @@ w_playlist_create (void) {
     gtk_container_add (GTK_CONTAINER (w->base.widget), GTK_WIDGET (listview));
     w_override_signals (w->base.widget, w);
     w->base.message = w_playlist_message;
+    return (ddb_gtkui_widget_t *)w;
+}
+
+//// search widget (TODO: missing search_message and events from deadbeef/plugins/gtkui/search.c. a refactoring would be nice to avoid duplicating code, but we should avoid larger edits for now)
+
+// copied with modifications from deadbeef/plugins/gtkui/search.c:search_process
+static void
+search_process (w_search_t *w, ddb_playlist_t *plt) {
+    const gchar *text = gtk_entry_get_text(w->searchentry);
+    deadbeef->plt_search_process2 (plt, text, 0);
+    ddb_listview_col_sort_update (w->plt.listview);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_SEARCHRESULT, 0);
+
+    int row = deadbeef->pl_get_cursor (PL_SEARCH);
+    if (row >= deadbeef->pl_getcount (PL_SEARCH)) {
+        deadbeef->pl_set_cursor (PL_SEARCH, deadbeef->pl_getcount (PL_SEARCH) - 1);
+    }
+    ddb_listview_list_setup (w->plt.listview, ddb_listview_get_scroll_pos(w->plt.listview));
+    ddb_listview_refresh (w->plt.listview, DDB_REFRESH_LIST);
+}
+
+// copied from deadbeef/plugins/gtkui/search.c:next_playitem
+static DB_playItem_t *
+search_next_playitem (DB_playItem_t *it) {
+    DB_playItem_t *next = deadbeef->pl_get_next (it, PL_SEARCH);
+    deadbeef->pl_item_unref (it);
+    return next;
+}
+
+// copied with modifications from deadbeef/plugins/gtkui/search.c:on_searchentry_changed
+static void
+on_search_searchentry_changed          (GtkEditable     *editable,
+                                        gpointer         user_data)
+{
+    w_search_t *w = (w_search_t*)user_data;
+    ddb_playlist_t *plt = deadbeef->plt_get_curr ();
+    if (plt) {
+        deadbeef->plt_deselect_all (plt);
+        search_process (w, plt);
+        for (DB_playItem_t *it = deadbeef->plt_get_first (plt, PL_SEARCH); it; it = search_next_playitem (it)) {
+            deadbeef->pl_set_selected (it, 1);
+        }
+        deadbeef->plt_unref (plt);
+    }
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_SELECTION, 0);
+    DB_playItem_t *head = deadbeef->pl_get_first (PL_SEARCH);
+    if (head) {
+        ddb_event_track_t *event = (ddb_event_track_t *)deadbeef->event_alloc(DB_EV_CURSOR_MOVED);
+        event->track = head;
+        deadbeef->event_send ((ddb_event_t *)event, PL_SEARCH, 0);
+    }
+}
+
+ddb_gtkui_widget_t *
+w_search_create (void) {
+    w_search_t *w = malloc (sizeof (w_search_t));
+    memset (w, 0, sizeof (w_search_t));
+
+    w->plt.base.widget = gtk_vbox_new (FALSE, 4);
+
+    w->searchentry = GTK_ENTRY (gtk_entry_new ());
+    gtk_widget_show (GTK_WIDGET (w->searchentry));
+    gtk_box_pack_start (GTK_BOX (w->plt.base.widget), GTK_WIDGET (w->searchentry), FALSE, FALSE, 0);
+    gtk_entry_set_invisible_char (GTK_ENTRY (w->searchentry), 8226);
+    gtk_entry_set_activates_default (GTK_ENTRY (w->searchentry), TRUE);
+    g_signal_connect ((gpointer) w->searchentry, "changed",
+                      G_CALLBACK (on_search_searchentry_changed),
+                      w);
+
+    w->plt.listview = DDB_LISTVIEW (ddb_listview_new ());
+    w->plt.controller = playlist_controller_new (w->plt.listview, TRUE);
+
+    gtk_widget_set_size_request (GTK_WIDGET (w->plt.base.widget), 100, 100);
+    w->plt.base.save = w_playlist_save;
+    w->plt.base.load = w_playlist_load;
+    w->plt.base.init = w_playlist_init;
+    w->plt.base.destroy = w_playlist_destroy;
+    w->plt.base.initmenu = w_playlist_initmenu;
+
+    gtk_widget_show (GTK_WIDGET (w->plt.listview));
+
+    if (deadbeef->conf_get_int ("gtkui.headers.visible", 1)) {
+        ddb_listview_show_header (DDB_LISTVIEW (w->plt.listview), 1);
+    }
+    else {
+        ddb_listview_show_header (DDB_LISTVIEW (w->plt.listview), 0);
+    }
+
+    gtk_box_pack_start (GTK_BOX (w->plt.base.widget), GTK_WIDGET (w->plt.listview), TRUE, TRUE, 0);
+    w_override_signals (w->plt.base.widget, w);
+    w->plt.base.message = w_playlist_message;
     return (ddb_gtkui_widget_t *)w;
 }
 

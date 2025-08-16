@@ -108,6 +108,9 @@ ddb_gtkui_widget_t *
 w_playlist_create (void);
 
 ddb_gtkui_widget_t *
+w_search_create (void);
+
+ddb_gtkui_widget_t *
 w_placeholder_create (void);
 
 ddb_gtkui_widget_t *
