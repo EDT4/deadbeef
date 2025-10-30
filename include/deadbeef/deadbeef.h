@@ -810,7 +810,7 @@ typedef struct ddb_tf_context_s {
     int dimmed;
 #endif
 #if (DDB_API_LEVEL >= 17)
-    void (*metadata_transformer)(struct ddb_tf_context_s *ctx, char *data, size_t size);
+    size_t (*metadata_transformer)(struct ddb_tf_context_s *ctx, char *data, size_t size, size_t capacity);
 #endif
 } ddb_tf_context_t;
 #endif

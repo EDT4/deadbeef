@@ -3642,7 +3642,7 @@ tf_eval_int (ddb_tf_context_t *ctx, const char *code, int size, char *out, int o
                     int32_t l = u8_strnbcpy (out, val, outlen);
 
                     if (ctx->metadata_transformer != NULL && outlen > 0) {
-                        ctx->metadata_transformer(ctx, out, l);
+                        l = ctx->metadata_transformer(ctx, out, l, outlen);
                     }
 
                     out += l;
@@ -3855,7 +3855,7 @@ tf_eval_int (ddb_tf_context_t *ctx, const char *code, int size, char *out, int o
                     int32_t l = u8_strnbcpy (out, val, outlen);
 
                     if (ctx->metadata_transformer != NULL && outlen > 0) {
-                        ctx->metadata_transformer(ctx, out, l);
+                        l = ctx->metadata_transformer(ctx, out, l, outlen);
                     }
 
                     out += l;

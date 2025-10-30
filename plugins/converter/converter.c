@@ -659,14 +659,15 @@ get_output_field (DB_playItem_t *it, const char *field, char *out, int sz)
     //trace ("field '%s' expanded to '%s'\n", field, out);
 }
 
-static void
-_metadata_transform(ddb_tf_context_t *ctx, char *data, size_t size) {
+static size_t
+_metadata_transform(ddb_tf_context_t *ctx, char *data, size_t size, size_t capacity) {
     const char *filter = "/\\:*?\"<>|";
     for (int i = 0; i < size; i++) {
         if (strchr (filter, data[i])) {
             data[i] = '-';
         }
     }
+    return size;
 }
 
 static void
