@@ -6,6 +6,8 @@ Developmentdir = $(datadir)/applications
 Development_in_files = glade-2.desktop.in
 Development_DATA = $(Development_in_files:.desktop.in=.desktop)
 
+ACLOCAL_AMFLAGS =-I m4
+
 @INTLTOOL_DESKTOP_RULE@
 
 EXTRA_DIST = \
