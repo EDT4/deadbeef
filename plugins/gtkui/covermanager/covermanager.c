@@ -167,15 +167,27 @@ static GdkPixbuf *
 _load_image_from_cover (covermanager_t *impl, ddb_cover_info_t *cover) {
     GdkPixbuf *img = NULL;
 
-    if (cover && cover->image_filename) {
-        long size = 0;
-        char *buf = _buffer_from_file (cover->image_filename, &size);
-        if (buf != NULL) {
+    if (cover) {
+        if (cover->image_filename) {
+            long size = 0;
+            char *buf = _buffer_from_file (cover->image_filename, &size);
+            if (buf != NULL) {
+                GdkPixbufLoader *loader = gdk_pixbuf_loader_new ();
+                gdk_pixbuf_loader_write (loader, (const guchar *)buf, size, NULL);
+                gdk_pixbuf_loader_close (loader, NULL);
+                img = gdk_pixbuf_loader_get_pixbuf (loader);
+                free (buf);
+                if (img) {
+                    g_object_ref (img);
+                }
+                g_object_unref (loader);
+            }
+        }
+        else if(cover->blob) {
             GdkPixbufLoader *loader = gdk_pixbuf_loader_new ();
-            gdk_pixbuf_loader_write (loader, (const guchar *)buf, size, NULL);
+            gdk_pixbuf_loader_write (loader, (const guchar *)(cover->blob + cover->blob_image_offset), cover->blob_image_size, NULL);
             gdk_pixbuf_loader_close (loader, NULL);
             img = gdk_pixbuf_loader_get_pixbuf (loader);
-            free (buf);
             if (img) {
                 g_object_ref (img);
             }

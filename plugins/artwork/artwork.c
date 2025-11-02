@@ -215,6 +215,7 @@ make_album_cache_filename (ddb_playItem_t *it, char *outpath, size_t outsize) {
 static int
 make_track_cache_path (ddb_playItem_t *it, char *outpath, size_t outsize) {
     outpath[0] = '\0';
+    return 0;
 
     char root_path[PATH_MAX];
     if (make_cache_root_path (root_path, sizeof (root_path)) < 0) {
@@ -241,6 +242,7 @@ make_track_cache_path (ddb_playItem_t *it, char *outpath, size_t outsize) {
 static int
 make_album_cache_path (ddb_playItem_t *it, char *outpath, int outsize) {
     outpath[0] = '\0';
+    return 0;
 
     char root_path[PATH_MAX];
     if (make_cache_root_path (root_path, sizeof (root_path)) < 0) {
@@ -586,10 +588,10 @@ id3_extract_art (ddb_cover_info_t *cover) {
                     id3v2_tag.frames = f->next;
                 }
 
-                cover->priv->blob = (char *)f;
-                cover->priv->blob_size = f->size;
-                cover->priv->blob_image_offset = (uint64_t)((char *)image_data - (char *)cover->priv->blob);
-                cover->priv->blob_image_size = sz;
+                cover->blob = (char *)f;
+                cover->blob_size = f->size;
+                cover->blob_image_offset = (uint64_t)((char *)image_data - (char *)cover->blob);
+                cover->blob_image_size = sz;
                 err = 0;
                 break;
             }
@@ -626,10 +628,10 @@ apev2_extract_art (ddb_cover_info_t *cover) {
                     apev2_tag.frames = f->next;
                 }
 
-                cover->priv->blob = (char *)f;
-                cover->priv->blob_size = f->size;
-                cover->priv->blob_image_offset = (uint64_t)((char *)image_data - (char *)cover->priv->blob);
-                cover->priv->blob_image_size = sz;
+                cover->blob = (char *)f;
+                cover->blob_size = f->size;
+                cover->blob_image_offset = (uint64_t)((char *)image_data - (char *)cover->blob);
+                cover->blob_image_size = sz;
                 err = 0;
                 break;
             }
@@ -691,10 +693,10 @@ mp4_extract_art (ddb_cover_info_t *cover) {
         goto error;
     }
 
-    cover->priv->blob = (char *)image_blob;
+    cover->blob = (char *)image_blob;
     image_blob = NULL;
-    cover->priv->blob_size = data->data_size;
-    cover->priv->blob_image_size = data->data_size;
+    cover->blob_size = data->data_size;
+    cover->blob_image_size = data->data_size;
     ret = 0;
 
 error:
@@ -837,11 +839,11 @@ _touch (const char *path) {
 
 static void
 _free_blob (ddb_cover_info_t *cover) {
-    free (cover->priv->blob);
-    cover->priv->blob = NULL;
-    cover->priv->blob_size = 0;
-    cover->priv->blob_image_offset = 0;
-    cover->priv->blob_image_size = 0;
+    free (cover->blob);
+    cover->blob = NULL;
+    cover->blob_size = 0;
+    cover->blob_image_offset = 0;
+    cover->blob_image_size = 0;
 }
 
 static void
@@ -850,8 +852,8 @@ _consume_blob (ddb_cover_info_t *cover, const char *cache_path) {
         _free_blob (cover);
         return;
     }
-    if (cover->priv->blob != NULL) {
-        write_file (cache_path, cover->priv->blob + cover->priv->blob_image_offset, cover->priv->blob_image_size);
+    if (cover->blob != NULL) {
+        write_file (cache_path, cover->blob + cover->blob_image_offset, cover->blob_image_size);
         cover->image_filename = strdup (cache_path);
         _free_blob (cover);
     }
@@ -901,10 +903,6 @@ process_query (ddb_cover_info_t *cover) {
             return;
         }
     }
-    else {
-        trace ("artwork: undefined album cache path\n");
-        return;
-    }
 
     // Flood control, don't retry missing artwork for an hour unless something changes
     if (res == 0 && cache_stat.st_mtime >= cache_reset_time && cache_stat.st_mtime + 60 * 60 > time (NULL)) {
@@ -923,7 +921,7 @@ process_query (ddb_cover_info_t *cover) {
                 DB_vfs_t *plugin = scandir_plug (vfs_fname);
                 if (plugin && !local_image_file (vfs_fname, fname_copy, plugin, cover)) {
                     free (fname_copy);
-                    copy_file (cover->image_filename, cover->priv->album_cache_path);
+                    //copy_file (cover->image_filename, cover->priv->album_cache_path);
                     cover->cover_found = 1;
                     return;
                 }
@@ -936,7 +934,7 @@ process_query (ddb_cover_info_t *cover) {
             /* Search in file directory */
             if (!local_image_file (fname_ptr, sep+1, NULL, cover)) {
                 free (fname_copy);
-                copy_file (cover->image_filename, cover->priv->album_cache_path);
+                //copy_file (cover->image_filename, cover->priv->album_cache_path);
                 cover->cover_found = 1;
                 return;
             }
@@ -950,7 +948,7 @@ process_query (ddb_cover_info_t *cover) {
         // try to load embedded from flac metadata
         trace ("trying to load artwork from Flac tag for %s\n", cover->priv->filepath);
         if (!flac_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }
@@ -959,7 +957,7 @@ process_query (ddb_cover_info_t *cover) {
         // try to load embedded from id3v2
         trace ("trying to load artwork from id3v2 tag for %s\n", cover->priv->filepath);
         if (!id3_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }
@@ -967,7 +965,7 @@ process_query (ddb_cover_info_t *cover) {
         // try to load embedded from apev2
         trace ("trying to load artwork from apev2 tag for %s\n", cover->priv->filepath);
         if (!apev2_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }
@@ -975,7 +973,7 @@ process_query (ddb_cover_info_t *cover) {
         // try to load embedded from mp4
         trace ("trying to load artwork from mp4 tag for %s\n", cover->priv->filepath);
         if (!mp4_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }
@@ -983,7 +981,7 @@ process_query (ddb_cover_info_t *cover) {
 #ifdef USE_OGG
         trace ("trying to load artwork from ogg tag for %s\n", cover->priv->filepath);
         if (!ogg_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }
@@ -992,7 +990,7 @@ process_query (ddb_cover_info_t *cover) {
 #ifdef USE_OPUS
         trace ("trying to load artwork from opus tag for %s\n", cover->priv->filepath);
         if (!opus_extract_art (cover)) {
-            _consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
+            //_consume_blob (cover, simplified_cache ? cover->priv->album_cache_path : cover->priv->track_cache_path);
             cover->cover_found = 1;
             return;
         }

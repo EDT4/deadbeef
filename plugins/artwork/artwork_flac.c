@@ -114,10 +114,10 @@ flac_extract_art (ddb_cover_info_t *cover) {
     FLAC__StreamMetadata_Picture *pic = &picture->data.picture;
     if (pic && pic->data_length > 0) {
         trace ("found flac cover art of %d bytes (%s)\n", pic->data_length, pic->description);
-        cover->priv->blob = malloc (pic->data_length);
-        memcpy (cover->priv->blob, pic->data, pic->data_length);
-        cover->priv->blob_size = pic->data_length;
-        cover->priv->blob_image_size = pic->data_length;
+        cover->blob = malloc (pic->data_length);
+        memcpy (cover->blob, pic->data, pic->data_length);
+        cover->blob_size = pic->data_length;
+        cover->blob_image_size = pic->data_length;
         err = 0;
     }
 error:

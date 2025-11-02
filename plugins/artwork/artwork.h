@@ -68,6 +68,11 @@ typedef struct ddb_cover_info_s {
 
     ddb_cover_info_priv_t *priv;
 
+    char *blob; // A blob with the image data, or NULL
+    uint64_t blob_size; // Size of the blob
+    uint64_t blob_image_offset; // offset where the image data starts in the blob
+    uint64_t blob_image_size; // size of the image at offset
+
     int cover_found; // set to 1 if the cover was found
 
     char *image_filename; // A name of file with the image

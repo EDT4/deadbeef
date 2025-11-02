@@ -44,11 +44,6 @@ struct ddb_cover_info_priv_s {
     char track_cache_path[PATH_MAX];
     char album_cache_path[PATH_MAX];
 
-    char *blob; // A blob with the image data, or NULL
-    uint64_t blob_size; // Size of the blob
-    uint64_t blob_image_offset; // offset where the image data starts in the blob
-    uint64_t blob_image_size; // size of the image at offset
-
     int refc; // Reference count, to allow sending the same cover to multiple callbacks
 
     // prev/next in the list of all alive cover_info_t objects

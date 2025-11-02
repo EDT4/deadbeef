@@ -115,10 +115,10 @@ ogg_parse_artwork_comment (const char *comment, int comment_length, ddb_cover_in
     /*uint32_t palette_size = */ READ_UINT32 ();
     uint32_t picture_data_len = READ_UINT32 ();
 
-    cover->priv->blob_size = picture_data_len;
-    cover->priv->blob_image_size = picture_data_len;
-    cover->priv->blob = (char *)decoded_blob;
-    cover->priv->blob_image_offset = buffer - decoded_blob;
+    cover->blob_size = picture_data_len;
+    cover->blob_image_size = picture_data_len;
+    cover->blob = (char *)decoded_blob;
+    cover->blob_image_offset = buffer - decoded_blob;
     return 0;
 
 error:

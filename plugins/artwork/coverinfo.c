@@ -65,7 +65,7 @@ cover_info_release (ddb_cover_info_t *cover) {
         return;
     }
     free (cover->image_filename);
-    free (cover->priv->blob);
+    free (cover->blob);
 
     // remove from list
     if (cover->priv->prev) {
