@@ -70,6 +70,10 @@ const char *trkproperties_hc_props[] = {
     NULL
 };
 
+static char *trkproperties_props_buf;
+static char **trkproperties_props;
+static size_t trkproperties_props_cap;
+
 int
 trkproperties_build_key_list (const char ***pkeys, int props, DB_playItem_t **tracks, int numtracks) {
     int sz = 20;
@@ -331,4 +335,65 @@ trkproperties_get_field_value (char *out, int size, const char *key, DB_playItem
     }
     free (prev);
     return multiple;
+}
+
+void
+trkproperties_shared_init (void) {
+    trkproperties_props_cap = 20;
+    trkproperties_props = malloc (sizeof (trkproperties_props[0]) * (trkproperties_props_cap + 1));
+
+    deadbeef->conf_lock ();
+    const char *conf = deadbeef->conf_get_str_fast ("trkproperties.prop_titles", NULL);
+    if (conf == NULL) {
+        deadbeef->conf_unlock ();
+        trkproperties_props_buf = NULL;
+        trkproperties_props[0] = NULL;
+    }
+    else {
+        // copy the buffer
+        trkproperties_props_buf = strdup (conf);
+        deadbeef->conf_unlock ();
+        //assert (trkproperties_props_buf != NULL);
+
+        // parse the buffer
+        char *c = trkproperties_props_buf;
+        unsigned int i = 0;
+        if (*c != '\0') {
+            trkproperties_props[i++] = c;
+
+            while ((c = strchr (c, ';'))) {
+                if (i >= trkproperties_props_cap) {
+                    trkproperties_props_cap *= 2;
+                    trkproperties_props = realloc(trkproperties_props, sizeof (trkproperties_props[0]) * (trkproperties_props_cap + 1));
+                }
+
+                *c = '\0';
+                trkproperties_props[i++] = ++c;
+            }
+            trkproperties_props[i - (i % 2)] = NULL;
+        }
+    }
+}
+
+void
+trkproperties_shared_free (void) {
+    if (trkproperties_props_buf) {
+        free (trkproperties_props_buf);
+        trkproperties_props_buf = NULL;
+    }
+    if (trkproperties_props) {
+        free (trkproperties_props);
+        trkproperties_props = NULL;
+    }
+    trkproperties_props_cap = 0;
+}
+
+char *
+trkproperties_custom_title_for_key (const char *key){
+    for (int i = 0; trkproperties_props[i]; i += 2) {
+        if (strcasecmp (key, trkproperties_props[i]) == 0) {
+            return trkproperties_props[i+1];
+        }
+    }
+    return NULL;
 }

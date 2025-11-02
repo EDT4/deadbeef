@@ -66,7 +66,6 @@ static int last_ctx;
 static ddb_playlist_t *last_plt;
 static trkproperties_delegate_t *_delegate;
 
-
 // Max length of a string displayed in the TableView
 // If a string is longer -- it gets clipped, and appended with " (…)", like with linebreaks
 #define MAX_GUI_FIELD_LEN 500
@@ -354,10 +353,15 @@ trkproperties_fill_meta (GtkListStore *store, DB_playItem_t **tracks, int numtra
             continue;
         }
 
-        char *title = _formatted_title_for_unknown_key(keys[k]);
-        add_field (store, keys[k], title, 0, tracks, numtracks);
-        free (title);
-        title = NULL;
+        char *title;
+        if ((title = trkproperties_custom_title_for_key (keys[k]))){
+            add_field (store, keys[k], title, 0, tracks, numtracks);
+        } else {
+            title = _formatted_title_for_unknown_key (keys[k]);
+            add_field (store, keys[k], title, 0, tracks, numtracks);
+            free (title);
+            title = NULL;
+        }
     }
     if (keys) {
         free (keys);
@@ -392,10 +396,15 @@ trkproperties_fill_prop (GtkListStore *store, DB_playItem_t **tracks, int numtra
             continue;
         }
 
-        char *title = _formatted_title_for_unknown_key(keys[k] + 1);
-        add_field (store, keys[k], title, 1, tracks, numtracks);
-        free (title);
-        title = NULL;
+        char *title;
+        if ((title = trkproperties_custom_title_for_key (keys[k] + 1))){
+            add_field (store, keys[k], title, 1, tracks, numtracks);
+        } else {
+            title = _formatted_title_for_unknown_key (keys[k] + 1);
+            add_field (store, keys[k], title, 1, tracks, numtracks);
+            free (title);
+            title = NULL;
+        }
     }
     if (keys) {
         free (keys);
@@ -412,32 +421,7 @@ trkproperties_fill_metadata (void) {
     gtk_list_store_clear (store);
     trkproperties_fill_meta (store, tracks, numtracks);
     gtk_list_store_clear (propstore);
-
-    // hardcoded properties
-    for (int i = 0; trkproperties_hc_props[i]; i += 2) {
-        add_field (propstore, trkproperties_hc_props[i], _(trkproperties_hc_props[i+1]), 1, tracks, numtracks);
-    }
-    // properties
-    const char **keys = NULL;
-    int nkeys = trkproperties_build_key_list (&keys, 1, tracks, numtracks);
-    for (int k = 0; k < nkeys; k++) {
-        int i;
-        for (i = 0; trkproperties_hc_props[i]; i += 2) {
-            if (!strcasecmp (keys[k], trkproperties_hc_props[i])) {
-                break;
-            }
-        }
-        if (trkproperties_hc_props[i]) {
-            continue;
-        }
-        char *title = _formatted_title_for_unknown_key(keys[k] + 1);
-        add_field (propstore, keys[k], title, 1, tracks, numtracks);
-        free (title);
-        title = NULL;
-    }
-    if (keys) {
-        free (keys);
-    }
+    trkproperties_fill_prop (propstore, tracks, numtracks);
 }
 
 void

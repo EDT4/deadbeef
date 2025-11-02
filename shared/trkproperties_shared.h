@@ -45,4 +45,13 @@ trkproperties_reload_tags (DB_playItem_t **tracks, int numtracks);
 int
 trkproperties_get_field_value (char *out, int size, const char *key, DB_playItem_t **tracks, int numtracks);
 
+void
+trkproperties_shared_init (void);
+
+void
+trkproperties_shared_free (void);
+
+char *
+trkproperties_custom_title_for_key (const char *key);
+
 #endif /* defined(____trkproperties_shared__) */

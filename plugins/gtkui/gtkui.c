@@ -64,6 +64,7 @@
 #include "search.h"
 #include "support.h"
 #include "trkproperties.h"
+#include "trkproperties_shared.h"
 #include "widgets.h"
 #include "wingeom.h"
 #include "plmenu.h"
@@ -1879,6 +1880,7 @@ gtkui_start (void) {
     add_pixmap_directory (deadbeef->get_system_dir (DDB_SYS_DIR_PIXMAP));
 
     covermanager_shared_init ();
+    trkproperties_shared_init ();
 
 #if GTK_CHECK_VERSION(3, 10, 0) && USE_GTK_APPLICATION
     gapp = deadbeef_app_new ();
@@ -1912,6 +1914,7 @@ quit_gtk_cb (gpointer nothing) {
 
     supereq_plugin = NULL;
     trkproperties_modified = 0;
+    trkproperties_shared_free ();
     trkproperties_destroy ();
     search_destroy ();
     gtkui_medialib_free ();
