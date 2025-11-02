@@ -339,6 +339,29 @@ scan_local_path (const char *local_path, const char *uri, DB_vfs_t *vfsplug, ddb
         memcpy (sorted_files, files, files_count * sizeof (struct dirent *));
         qsort(sorted_files, files_count, sizeof (struct dirent *), _dirent_alpha_cmp_func);
 
+        // using filename
+        if (!vfsplug) {
+            static const char *fileexts[] = {"jpg", "jpeg", "png", "webp", NULL};
+
+            const char *stem_end = strrchr (uri, '.') + 1;
+
+            if (stem_end) {
+                size_t stem_len = (size_t)(stem_end - uri);
+                for (int i = 0; i < files_count; i++) {
+                    if(strncmp (uri, sorted_files[i]->d_name, stem_len) == 0){
+                        for (const char **ext = fileexts; *ext; ext++) {
+                            if(strcmp (*ext, sorted_files[i]->d_name + stem_len) == 0){
+                                err = dir_scan_results (sorted_files[i], local_path, cover);
+                                goto end;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // using filemask
         const char *filemask_end = filemask + strlen (filemask);
         char *p;
         while ((p = strrchr (filemask, ';'))) {
@@ -348,7 +371,7 @@ scan_local_path (const char *local_path, const char *uri, DB_vfs_t *vfsplug, ddb
         for (char *mask = filemask; mask < filemask_end; mask += strlen (mask) + 1) {
             for (int i = 0; i < files_count; i++) {
                 if (!fnmatch (mask, sorted_files[i]->d_name, FNM_CASEFOLD)) {
-                    if (uri) {
+                    if (vfsplug) {
                         err = vfs_scan_results (sorted_files[i], uri, cover, mask);
                     }
                     else {
@@ -363,6 +386,8 @@ scan_local_path (const char *local_path, const char *uri, DB_vfs_t *vfsplug, ddb
                 break;
             }
         }
+
+        end:
         free (sorted_files);
         for (size_t i = 0; i < files_count; i++) {
             free (files[i]);
@@ -904,8 +929,12 @@ process_query (ddb_cover_info_t *cover) {
                 }
             }
 
+            char *fname_ptr = vfs_fname ? vfs_fname : fname_copy;
+            char *sep = strrchr(fname_ptr, '/');
+            *sep = '\0';
+
             /* Search in file directory */
-            if (!local_image_file (dirname (vfs_fname ? vfs_fname : fname_copy), NULL, NULL, cover)) {
+            if (!local_image_file (fname_ptr, sep+1, NULL, cover)) {
                 free (fname_copy);
                 copy_file (cover->image_filename, cover->priv->album_cache_path);
                 cover->cover_found = 1;
