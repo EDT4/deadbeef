@@ -296,7 +296,7 @@ streamer_dsp_postinit (void) {
     // if not -- we add our own
 
     // eq plug
-    if (_eqplug) {
+    /*if (_eqplug) {
         ddb_dsp_context_t *p;
 
         for (p = _current_dsp_chain; p; p = p->next) {
@@ -314,7 +314,7 @@ streamer_dsp_postinit (void) {
             _current_dsp_chain = _eq;
         }
 
-    }
+    }*/
     ddb_dsp_context_t *ctx = _current_dsp_chain;
     while (ctx) {
         if (ctx->enabled) {
