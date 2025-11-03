@@ -75,10 +75,10 @@ pl_common_draw_column_data (DdbListview *listview, cairo_t *cr, DdbListviewIter 
             int paused = deadbeef->get_output ()->state () == DDB_PLAYBACK_STATE_PAUSED;
             int buffering = !deadbeef->streamer_ok_to_read (-1);
             if (paused) {
-                strcpy (text, "||");
+                strcpy (text, "ıı");
             }
             else if (!buffering) {
-                strcpy (text, "►");
+                strcpy (text, "▶"); //TODO: Should be configurable
             }
             else {
                 strcpy (text, "⋯");
