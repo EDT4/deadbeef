@@ -47,6 +47,7 @@ typedef struct {
 
     guint visible_sections;
     guint show_headers;
+    gboolean autoresize;
 
     gboolean updating_menu; // suppress menu event handlers
     GtkWidget *menu;
@@ -112,11 +113,25 @@ fill_selproperties_cb (gpointer data) {
 }
 
 static void
+update_columns_resize (w_selproperties_t *w) {
+    GtkTreeViewColumn *col = gtk_tree_view_get_column (GTK_TREE_VIEW (w->tree), 0);
+    if (w->autoresize) {
+        gtk_tree_view_column_set_fixed_width (col, -1);
+        gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+        gtk_tree_view_column_set_resizable (col, FALSE);
+    } else {
+        gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_FIXED);
+        gtk_tree_view_column_set_resizable (col, TRUE);
+    }
+}
+
+static void
 _init (struct ddb_gtkui_widget_s *widget) {
     w_selproperties_t *w = (w_selproperties_t *)widget;
     w->refresh_timeout = 0;
     fill_selproperties_cb (widget);
     gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (w->tree), w->show_headers);
+    update_columns_resize (w);
 }
 
 static void
@@ -233,6 +248,14 @@ _deserialize_from_keyvalues (ddb_gtkui_widget_t *widget, const char **keyvalues)
 
         } else if (!strcmp (keyvalues[i], "showheaders")) {
             s->show_headers = atoi(keyvalues[i+1]);
+        } else if (!strcmp (keyvalues[i], "width")) {
+            gint width = atoi(keyvalues[i+1]);
+            if (width > 0){
+                s->autoresize = FALSE;
+                gtk_tree_view_column_set_fixed_width (gtk_tree_view_get_column (GTK_TREE_VIEW (s->tree), 0), width);
+            }else{
+                s->autoresize = TRUE;
+            }
         }
     }
 
@@ -245,7 +268,7 @@ static char const **
 _serialize_to_keyvalues (ddb_gtkui_widget_t *widget) {
     w_selproperties_t *s = (w_selproperties_t *)widget;
 
-    char const **keyvalues = calloc (5, sizeof (char *));
+    char const **keyvalues = calloc (7, sizeof (char *));
 
     keyvalues[0] = "section";
 
@@ -262,11 +285,17 @@ _serialize_to_keyvalues (ddb_gtkui_widget_t *widget) {
     keyvalues[2] = "showheaders";
     keyvalues[3] = s->show_headers ? "1" : "0";
 
+    keyvalues[4] = "width";
+    char *tmp = malloc(20);
+    snprintf(tmp, 20, "%d", s->autoresize? -1 : gtk_tree_view_column_get_width (gtk_tree_view_get_column (GTK_TREE_VIEW (s->tree), 0)));
+    keyvalues[5] = tmp;
+
     return keyvalues;
 }
 
 static void
 _free_serialized_keyvalues(ddb_gtkui_widget_t *w, char const **keyvalues) {
+    free ((char *)keyvalues[5]);
     free (keyvalues);
 }
 
@@ -279,9 +308,17 @@ on_properties_showheaders_toggled (GtkCheckMenuItem *checkmenuitem, gpointer use
 }
 
 static void
+on_properties_autoresize_toggled (GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+    w_selproperties_t *w = user_data;
+    w->autoresize = gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (checkmenuitem));
+    update_columns_resize (w);
+}
+
+static void
 _initmenu (struct ddb_gtkui_widget_s *w, GtkWidget *menu) {
     w_selproperties_t *s = (w_selproperties_t *)w;
     GtkWidget *item;
+
     item = gtk_check_menu_item_new_with_mnemonic (_("Show Column Headers"));
     gtk_widget_show (item);
     int showheaders = s->show_headers;
@@ -289,6 +326,14 @@ _initmenu (struct ddb_gtkui_widget_s *w, GtkWidget *menu) {
     gtk_container_add (GTK_CONTAINER (menu), item);
     g_signal_connect ((gpointer) item, "toggled",
             G_CALLBACK (on_properties_showheaders_toggled),
+            w);
+
+    item = gtk_check_menu_item_new_with_mnemonic (_("Auto-resize Key Column"));
+    gtk_widget_show (item);
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), s->autoresize);
+    gtk_container_add (GTK_CONTAINER (menu), item);
+    g_signal_connect ((gpointer) item, "toggled",
+            G_CALLBACK (on_properties_autoresize_toggled),
             w);
 }
 
@@ -302,6 +347,7 @@ w_selproperties_create (void) {
     w->base.message = _message;
     w->base.initmenu = _initmenu;
     w->visible_sections = SECTION_METADATA | SECTION_PROPERTIES;
+    w->autoresize = FALSE;
     w->exapi._size = sizeof (ddb_gtkui_widget_extended_api_t);
     w->exapi.deserialize_from_keyvalues = _deserialize_from_keyvalues;
     w->exapi.serialize_to_keyvalues = _serialize_to_keyvalues;
