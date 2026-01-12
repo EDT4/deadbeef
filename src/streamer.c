@@ -2352,6 +2352,7 @@ _streamer_get_bytes (char *bytes, int size) {
 
         // handle change of track
         if (decoded_block->first) {
+            decoded_block->first = 0;
             handle_track_change (playing_track, decoded_block->track);
         }
 
